@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: geo-engine-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount private key securely
+      - ./backend/privatekey.json:/app/privatekey.json
+      # Mount source code for hot reloading (optional, helps in dev)
+      - ./backend/src:/app/src
+    environment:
+      - PORT=8000
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: geo-engine-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

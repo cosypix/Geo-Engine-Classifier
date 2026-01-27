@@ -1,5 +1,0 @@
-earthengine-api
-geemap
-folium
-numpy
-python-dotenv
