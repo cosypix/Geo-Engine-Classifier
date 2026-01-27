@@ -207,9 +207,3 @@ Geo-Engine-Classifier/
 - Check browser console for CORS errors
 - Ensure both frontend (5173) and backend (8000) are running
 - Verify Earth Engine API is enabled in Google Cloud
-
----
-
-## 📜 License
-
-MIT License
