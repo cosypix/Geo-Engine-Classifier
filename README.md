@@ -48,9 +48,9 @@ All models trained with **70/30 train-test split**.
 
 | Model | Algorithm | Accuracy | Kappa | Confusion Matrix |
 |-------|-----------|----------|-------|------------------|
-| **Random Forest** | `smileRandomForest(150)` | **100%** | 1.0 | [[15, 0], [0, 22]] |
-| **SVM** | `libsvm` | **100%** | 1.0 | [[21, 0], [0, 15]] |
-| **XGBoost** | `smileGradientTreeBoost(10)` | **96.875%** | 0.9375 | [[16, 1], [0, 15]] |
+| **Random Forest** | `smileRandomForest(150)` | 0.9230 | 0.8454 | [[20, 3], [0, 16]] |
+| **SVM** | `libsvm` |  0.9574 | 0.9126 | [[19, 1], [1, 26]] |
+| **XGBoost** | `smileGradientTreeBoost(10)` | 0.9761 | 0.9523 | [[20, 1], [0, 21]] |
 
 > **Confusion Matrix Format:** `[[TN, FP], [FN, TP]]`
 
