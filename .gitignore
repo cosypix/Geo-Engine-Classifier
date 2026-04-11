@@ -1,5 +1,16 @@
-__pycache__/
-*.pyc
+# Environments
+env/
 .env
+venv/
 .venv/
-.ipynb_checkpoints/
+__pycache__/
+
+# Documents
+*.pptx
+*.pdf
+*.html
+*.csv
+*.txt
+
+# Scripts
+scripts/

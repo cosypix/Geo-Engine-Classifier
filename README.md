@@ -1,139 +1,42 @@
-# 🌲 Campus Forest Classification using Satellite Imagery
+# Campus Land Cover Classification with Sentinel-2
 
-A machine learning-based land cover classification project that identifies **Forest** and **Non-Forest** regions on a university campus using Sentinel-2 satellite imagery and Google Earth Engine.
+This project performs binary land cover classification (Forest vs. Non-Forest) over a university campus area using Google Earth Engine and machine learning algorithms.
 
-![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
-![Earth Engine](https://img.shields.io/badge/Google%20Earth%20Engine-API-green?logo=google)
+## Overview
+Using Sentinel-2 Surface Reflectance data, the project filters images to a strict **1% cloud cover threshold (QA60 masking)** and evaluates three classifiers:
+- **Random Forest**
+- **Support Vector Machine (SVM) (RBF Kernel)**
+- **XGBoost (Gradient Boosted Trees)**
 
----
+## Key Findings
+- Internal validation (Campus bounds) demonstrates **Random Forest** as the strongest baseline (99.35%).
+- External validation (Test Area unseen land) demonstrates that **SVM** and **XGBoost** tie for the highest generalization accuracy (91.67%).
+- **Winter imagery** provides the most accurate spectral separability for the study area.
+- 250 points per label were used for internal training/validation (70/30 split), and 240 points per label were evaluated externally.
 
-## 📍 Study Area
+## Repository Structure
+- `fe/`: Feature extraction and temporal/cloud sensitivity analysis notebooks.
+- `nb/`:
+  - `rf/`, `svm/`, `xgb/`: Classifier training, hyperparameter tuning, and spatial mapping notebooks.
+  - `cal_area/`: Unseen test area validation notebooks for each classifier.
+- `assets/`: Generated charts, heatmaps, and classified maps.
 
-University campus region defined using a custom polygon boundary (centered at approximately 80.02°E, 23.17°N).
+## Setup Instructions
 
----
-
-## 🛰️ Data Source
-
-- **Satellite:** Sentinel-2 Surface Reflectance (`COPERNICUS/S2_SR_HARMONIZED`)
-- **Date Range:** November 2025 - January 2026
-- **Cloud Filter:** < 30% cloudy pixel percentage
-
----
-
-## 🧹 Preprocessing
-
-- Cloud masking using QA60 band
-- Median composite generation
-- NDVI calculation: `(B8 - B4) / (B8 + B4)`
-
----
-
-## 🤖 Classification Models
-
-Three classifiers trained on manually digitized points:
-- **Random Forest** - `ee.Classifier.smileRandomForest(150)`
-- **SVM** - `ee.Classifier.libsvm()`
-- **XGBoost** - `ee.Classifier.smileGradientTreeBoost(10)`
-
-**Labels:**
-- Forest = 1
-- Non-Forest = 0
-
----
-
-## 📊 Model Comparison
-
-All models trained with **70/30 train-test split**.
-
-| Model | Algorithm | Accuracy | Kappa | Confusion Matrix |
-|-------|-----------|----------|-------|------------------|
-| **Random Forest** | `smileRandomForest(150)` | 0.9230 | 0.8454 | [[20, 3], [0, 16]] |
-| **SVM** | `libsvm` |  0.9574 | 0.9126 | [[19, 1], [1, 26]] |
-| **XGBoost** | `smileGradientTreeBoost(10)` | 0.9761 | 0.9523 | [[20, 1], [0, 21]] |
-
-> **Confusion Matrix Format:** `[[TN, FP], [FN, TP]]`
-
----
-
-## � Project Structure
-
-```
-├── notebooks/
-│   ├── random_forest/
-│   │   └── forest_classification.ipynb
-│   ├── svm/
-│   │   └── forest_classification.ipynb
-│   └── xg_boost/
-│       └── forest_classification.ipynb
-├── scripts/
-│   └── classify_forest.py
-├── .env
-├── .gitignore
-├── requirements.txt
-└── README.md
-```
-
----
-
-## ⚙️ Installation
-
-### Prerequisites
-- Python 3.10+
-- Google Earth Engine account
-
-### Setup
-
-1. **Clone the repository**
+1. **Install dependencies:**
    ```bash
-   git clone <repository-url>
-   cd <project-directory>
-   ```
-
-2. **Create virtual environment & install dependencies**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
    pip install -r requirements.txt
    ```
 
-3. **Authenticate Earth Engine**
+2. **Google Earth Engine Authentication:**
+   Authenticate your local Earth Engine environment:
    ```bash
    earthengine authenticate
    ```
-
-4. **Configure environment**
-   
-   Create a `.env` file:
+   Ensure your `.env` file contains your Earth Engine Project ID:
    ```env
-   EE_PROJECT_ID=your-earth-engine-project-id
+   EE_PROJECT_ID=your-project-id
    ```
 
----
-
-## 🚀 Usage
-
-### Run Notebooks
-```bash
-jupyter notebook
-```
-Open any notebook in `notebooks/` directory and run all cells.
-
-### Run Script
-```bash
-python scripts/classify_forest.py
-```
-
----
-
-## 🗺️ Output
-
-Binary classification map:
-- 🌲 **Dark Green** = Forest
-- ⬜ **Light Gray** = Non-Forest
-
----
-
-<p align="center">
-  Made with ❤️ using Google Earth Engine
-</p>
+3. **Run Notebooks:**
+   Open Jupyter notebooks to explore feature extraction, hyperparameter grid search, and final classification outputs.
