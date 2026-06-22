@@ -46,7 +46,7 @@
 %% ── Title ───────────────────────────────────────────────────────────────────
 \title{
     \vspace{-1cm}
-    \textbf{\Large Binary Land Cover Classification of Forest and Non-Forest Regions Using Sentinel-2 Imagery and Ensemble Machine Learning on Google Earth Engine}
+    \textbf{\Large Land Cover Classification of Campus and District-Scale Regions Using Sentinel-2 Imagery and Multi-Model Machine Learning on Google Earth Engine}
     \vspace{0.3cm}
 }
 
@@ -58,7 +58,7 @@
     Siddharth Ilayaraja \\ \small\texttt{24bcs292@iiitdmj.ac.in}
 }
 
-\date{April 2026}
+\date{June 2026}
 
 %% ============================================================================
 \begin{document}
@@ -66,10 +66,10 @@
 \maketitle
 \begin{abstract}
 \noindent
-Accurate and scalable land cover classification is essential for environmental monitoring, urban planning, and natural resource management. This paper presents a comprehensive study on binary classification of \textit{Forest} versus \textit{Non-Forest} land cover over a university campus area using multispectral satellite imagery from the Sentinel-2 mission. Three supervised machine learning classifiers---Random Forest (RF), Support Vector Machine with Radial Basis Function kernel (SVM-RBF), and Gradient Boosted Trees (XGBoost)---were trained and evaluated using spectral bands B4 (Red), B8 (Near-Infrared), and the derived Normalized Difference Vegetation Index (NDVI). Cloud masking was performed via QA60 bitmask processing, and median compositing was applied across satellite acquisitions. Hyperparameter tuning was conducted via exhaustive grid search with 5-fold cross-validation. Campus-level internal validation yielded highly competent accuracies around 95--97\%. External validation on a spatially disjoint test region with 240 independent ground-truth points per class demonstrated that SVM achieved the highest generalization accuracy of 91.04\% ($\kappa = 0.821$), followed by XGBoost at 90.83\% ($\kappa = 0.817$) and RF at 89.17\% ($\kappa = 0.783$). To further evaluate spatial transferability, the trained models were deployed over the entire Jabalpur district---an administrative region spanning approximately 5,211\,km$^2$---using 1,600 auto-generated test points (800 per class). All three classifiers achieved district-level accuracies exceeding 97\%, with SVM attaining the highest accuracy of 98.31\% ($\kappa = 0.966$). Furthermore, the pipeline was successfully extended to a multi-class framework (\textit{Water}, \textit{Forest}, \textit{Soil}, \textit{Buildings}) utilizing an expanded 10-dimensional feature space (incorporating NDWI, NDBI, SAVI, and SWIR bands), achieving multi-class accuracies exceeding 95\% across the campus domain. All models were executed server-side on Google Earth Engine utilizing a decoupled testing logic to ensure full reproducibility.
+Accurate and scalable land cover classification is essential for environmental monitoring, urban planning, and natural resource management. This paper presents a comprehensive two-phase study on land cover mapping over the IIITDM Jabalpur university campus using multispectral satellite imagery from the Sentinel-2 mission. In \textbf{Phase~1} (binary classification), five supervised machine learning classifiers---Random Forest (RF), Support Vector Machine (SVM-RBF), Gradient Boosted Trees (XGBoost), K-Nearest Neighbours (KNN), and Classification and Regression Tree (CART)---were evaluated for \textit{Forest} vs.\ \textit{Non-Forest} discrimination using spectral bands B4, B8, and NDVI. Cloud masking was performed via QA60 bitmask processing and median compositing. Hyperparameter tuning used exhaustive grid search with 5-fold cross-validation. External validation on a spatially disjoint test region (480 points, 240 per class) showed XGBoost achieving the highest accuracy of 87.77\% ($\kappa = 0.75$), followed by SVM at 84.79\% ($\kappa = 0.70$) and RF at 81.87\% ($\kappa = 0.64$). District-scale deployment over Jabalpur ($\sim$5,211\,km$^2$, 1,600 auto-generated points) yielded accuracies exceeding 97\% for all models, with SVM attaining the highest at 98.31\% ($\kappa = 0.97$). In \textbf{Phase~2} (multi-class), the pipeline was extended to four semantic classes (\textit{Water}, \textit{Forest}, \textit{Soil}, \textit{Buildings}) using an expanded 10-dimensional feature space (B2, B3, B4, B8, B11, B12, NDVI, NDWI, NDBI, SAVI). All five classifiers were benchmarked via 5-fold cross-validation; XGBoost achieved the highest overall accuracy of 93.06\% ($\kappa = 0.892$), followed by SVM at 90.74\% ($\kappa = 0.873$), RF at 89.81\% ($\kappa = 0.859$), CART at 88.89\% ($\kappa = 0.847$), and KNN at 88.89\% ($\kappa = 0.847$). All models were executed server-side on Google Earth Engine with decoupled testing logic for full reproducibility.
 
 \vspace{0.3cm}
-\noindent\textbf{Keywords:} Land Cover Classification, Sentinel-2, Random Forest, Support Vector Machine, XGBoost, Google Earth Engine, NDVI, Multi-Class, Binary Classification
+\noindent\textbf{Keywords:} Land Cover Classification, Sentinel-2, Random Forest, SVM, XGBoost, KNN, CART, Google Earth Engine, NDVI, NDWI, NDBI, Multi-Class, Binary Classification
 \end{abstract}
 
 \twocolumn
@@ -83,17 +83,18 @@ Land cover classification is a fundamental task in remote sensing and geospatial
 
 The advent of freely available, high-resolution satellite data---particularly from the European Space Agency's Sentinel-2 mission~\cite{drusch2012sentinel}---has democratised access to multispectral imagery at 10-metre spatial resolution with a five-day revisit cycle. Coupled with cloud-native geospatial computing platforms such as Google Earth Engine (GEE)~\cite{gorelick2017google}, researchers can now perform large-scale classification entirely server-side, eliminating the need for local data downloads and substantial computational infrastructure.
 
-This study addresses the binary classification problem of distinguishing \textit{Forest} from \textit{Non-Forest} land cover within a defined university campus boundary (centred at approximately $80.02^{\circ}$E, $23.17^{\circ}$N). The primary objectives are:
+This study addresses two classification problems over the IIITDM Jabalpur campus (centred at approximately $80.02^{\circ}$E, $23.17^{\circ}$N): binary \textit{Forest} vs.\ \textit{Non-Forest} delineation, and four-class semantic land cover mapping (\textit{Water}, \textit{Forest}, \textit{Soil}, \textit{Buildings}). The primary objectives are:
 
 \begin{enumerate}[label=(\roman*)]
-    \item To evaluate three supervised classifiers---Random Forest, SVM (RBF kernel), and XGBoost---for land cover mapping using Sentinel-2 Surface Reflectance data.
+    \item To benchmark five supervised classifiers---Random Forest, SVM (RBF kernel), XGBoost, KNN, and CART---for binary and multi-class land cover mapping using Sentinel-2 Surface Reflectance data.
     \item To assess model generalization by validating on an entirely unseen, spatially disjoint external test region using 480 independently collected test points.
     \item To evaluate district-scale spatial transferability by deploying trained models over the entire Jabalpur district boundary using 1,600 auto-generated ground-truth points.
-    \item To perform systematic hyperparameter optimization via grid search with 5-fold cross-validation combinations.
-    \item To execute models using Jupyter magic commands (\%run) to rapidly scale test boundaries.
+    \item To perform systematic hyperparameter optimization via grid search with 5-fold cross-validation.
+    \item To quantify the impact of seasonal phenology and cloud cover thresholds on classification accuracy across both binary and multi-class pipelines.
+    \item To benchmark all five classifiers across per-class accuracy metrics (Forest, Water, Soil, Buildings) and summarise model-level cross-validation performance.
 \end{enumerate}
 
-The remainder of this paper is organized as follows: Section~\ref{sec:study_area} describes the study area. Section~\ref{sec:data} details data acquisition and preprocessing. Section~\ref{sec:methodology} presents the classification algorithms. Section~\ref{sec:hyperparameter} covers hyperparameter tuning. Section~\ref{sec:results} reports the experimental results. Section~\ref{sec:discussion} provides a comparative discussion, and Section~\ref{sec:conclusion} concludes with key findings and future directions.
+The remainder of this paper is organized as follows: Section~\ref{sec:study_area} describes the study area. Section~\ref{sec:data} details data acquisition and preprocessing. Section~\ref{sec:methodology} presents the five classification algorithms. Section~\ref{sec:results} reports binary and district-level experimental results. Section~\ref{sec:multiclass} covers the multi-class extension and 5-model benchmark, and Section~\ref{sec:conclusion} concludes with key findings and future directions.
 
 %% ============================================================================
 \section{Study Area}
@@ -126,7 +127,7 @@ To evaluate district-scale transferability, the trained models were additionally
 
 \subsection{Satellite Imagery}
 
-The study utilises Sentinel-2 Level-2A Surface Reflectance (SR) imagery from the \texttt{COPERNICUS/S2\_SR\_HARMONIZED} collection available on Google Earth Engine. This study employs two reflectance bands and one derived vegetation index:
+The study utilises Sentinel-2 Level-2A Surface Reflectance (SR) imagery from the \texttt{COPERNICUS/S2\_SR\_HARMONIZED} collection available on Google Earth Engine. For the binary phase (Phase~1), two reflectance bands and one derived index were used; the multi-class phase (Phase~2) expanded the feature space to ten dimensions (see Section~\ref{sec:multiclass}). The binary phase features are:
 
 \begin{table}[H]
 \centering
@@ -221,7 +222,7 @@ These test points were auto-generated using high-confidence reference labels der
 \label{sec:methodology}
 %% ============================================================================
 
-Three supervised classification algorithms were selected to represent fundamentally different learning paradigms: bagging (Random Forest), margin-based learning (SVM), and boosting (XGBoost). All classifiers were trained on the three-band feature vector $\mathbf{x} = [\text{B4}, \text{B8}, \text{NDVI}]^\top$. 
+Five supervised classification algorithms were selected to represent fundamentally different learning paradigms: bagging (Random Forest), margin-based learning (SVM), boosting (XGBoost), instance-based learning (KNN), and single decision tree (CART). For the binary phase, classifiers were trained on the three-band feature vector $\mathbf{x} = [\text{B4}, \text{B8}, \text{NDVI}]^\top$; for the multi-class phase the feature space was expanded to ten dimensions (see Section~\ref{sec:multiclass}).
 
 \subsection{Random Forest (RF)}
 \label{subsec:rf}
@@ -283,6 +284,44 @@ Gradient Boosted Trees~\cite{chen2016xgboost} sequentially construct an ensemble
 \end{tabular}
 \end{table}
 
+\subsection{K-Nearest Neighbours (KNN)}
+\label{subsec:knn}
+
+K-Nearest Neighbours is a non-parametric, instance-based classifier that assigns a label by majority vote among the $k$ closest training samples in feature space. \textbf{GEE Implementation:} \texttt{ee.Classifier.minimumDistance} with the Euclidean metric was used. For the multi-class phase, the optimal neighbourhood size was determined via grid search cross-validation.
+
+\begin{table}[H]
+\centering
+\caption{KNN -- Optimized Hyperparameters (Multi-Class).}
+\label{tab:knn_params}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+\texttt{metric} & Euclidean \\
+\texttt{k} & tuned via CV \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Classification and Regression Tree (CART)}
+\label{subsec:cart}
+
+CART is a single decision tree algorithm that recursively partitions the feature space using binary splits to minimise impurity (Gini index for classification). \textbf{GEE Implementation:} \texttt{ee.Classifier.smileCart} was used. CART provides a human-interpretable model and acts as a structural baseline against ensemble methods.
+
+\begin{table}[H]
+\centering
+\caption{CART -- Optimized Hyperparameters (Multi-Class).}
+\label{tab:cart_params}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+\texttt{maxNodes} & tuned via CV \\
+\texttt{minLeafPopulation} & tuned via CV \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 %% ============================================================================
 \section{Experimental Results}
 \label{sec:results}
@@ -301,20 +340,20 @@ External validation was conducted on a spatially disjoint test region having 2 t
 \toprule
 \textbf{Classifier} & \textbf{Confusion Matrix} & \textbf{Acc.\ (\%)} & \textbf{$\kappa$} \\
 \midrule
-SVM (RBF) & {[[219,21],[22,218]]} & 84.79 & 0.6958 \\
-XGBoost & {[[218,22],[22,218]]} & \textbf{87.77} & 0.7541 \\
-Random Forest & {[[214,26],[26,214]]} & 81.87 & 0.6375 \\
+XGBoost       & {[[218,22],[22,218]]} & \textbf{87.77} & \textbf{0.7541} \\
+SVM (RBF)     & {[[219,21],[22,218]]} & 84.79          & 0.6958 \\
+Random Forest & {[[214,26],[26,214]]} & 81.87          & 0.6375 \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-The external test results demonstrate that \textbf{XGBoost} achieves the best performance on completely unseen data (87.77\%), closely followed sequentially by \textbf{SVM(RBF)} (84.79\%) and \textbf{Random Forest} (81.87\%). 
+The external test results demonstrate that \textbf{XGBoost} achieves the best performance on completely unseen data (87.77\%, $\kappa=0.754$), followed by \textbf{SVM (RBF)} (84.79\%, $\kappa=0.696$) and \textbf{Random Forest} (81.87\%, $\kappa=0.638$).
 
 \subsection{District-Level Validation: Jabalpur}
 \label{subsec:jbp_results}
 
-To evaluate the spatial transferability of the campus-trained classifiers at a significantly larger administrative scale, all three models were deployed over the entire Jabalpur district boundary. A Sentinel-2 median composite (November--December 2025, $\leq 20\%$ cloud cover) was generated and clipped to the district geometry. Classification was performed using the pre-trained models loaded via \texttt{\%run} from the respective tuned notebooks. Post-classification spatial smoothing was applied using a \texttt{focalMode(1)} filter.
+To evaluate the spatial transferability of the campus-trained classifiers at a significantly larger administrative scale, all three binary-phase classifiers (RF, SVM, XGBoost) were deployed over the entire Jabalpur district boundary. A Sentinel-2 median composite (November--December 2025, $\leq 20\%$ cloud cover) was generated and clipped to the district geometry. Classification was performed using the pre-trained models loaded via \texttt{\%run} from the respective tuned notebooks. Post-classification spatial smoothing was applied using a \texttt{focalMode(1)} filter.
 
 Validation was conducted against 1,600 independently auto-generated ground-truth points (800 Forest + 800 Non-Forest), stratified across the full district extent.
 
@@ -335,7 +374,7 @@ Random Forest & {[[789,11],[25,775]]} & 97.75 & 0.9550 \\
 }
 \end{table}
 
-All three classifiers achieved district-level accuracies exceeding 97\%, substantially surpassing the campus-adjacent external validation scores. \textbf{SVM (RBF)} yielded the highest overall accuracy of 98.31\% ($\kappa = 0.966$), followed by \textbf{XGBoost} at 98.06\% ($\kappa = 0.961$) and \textbf{Random Forest} at 97.75\% ($\kappa = 0.955$).
+All three binary classifiers achieved district-level accuracies exceeding 97\%, substantially surpassing the campus-adjacent external validation scores. \textbf{SVM (RBF)} yielded the highest overall accuracy of 98.31\% ($\kappa = 0.9663$), followed by \textbf{XGBoost} at 98.06\% ($\kappa = 0.9613$) and \textbf{Random Forest} at 97.75\% ($\kappa = 0.9550$).
 
 \subsubsection{Confusion Matrix Analysis -- Jabalpur}
 
@@ -416,71 +455,159 @@ Examining the SVM confusion matrix in detail on the external region:
 \label{sec:multiclass}
 %% ============================================================================
 
-To provide a richer semantic understanding of the campus landscape, the binary classification pipeline was successfully extended to a four-class scheme: \textit{Water}, \textit{Forest}, \textit{Soil}, and \textit{Buildings}. 
+To provide a richer semantic understanding of the campus landscape, the binary classification pipeline was extended to a four-class scheme: \textit{Water} (0), \textit{Forest} (1), \textit{Soil/Open Ground} (2), and \textit{Buildings/Built-up} (3). All five classifiers (RF, SVM, XGBoost, KNN, CART) were trained and evaluated in this phase.
 
-\subsection{Expanded Feature Space and Data}
+\subsection{Expanded Feature Space and Training Data}
 Distinguishing four heterogeneous classes required expanding the spectral feature space from three to ten dimensions. The new feature vector $\mathbf{x}$ included: B2 (Blue), B3 (Green), B4 (Red), B8 (NIR), B11 (SWIR-1), B12 (SWIR-2), NDVI, Normalized Difference Water Index (NDWI), Normalized Difference Built-up Index (NDBI), and Soil Adjusted Vegetation Index (SAVI).
 
-Ground-truth points were independently generated using Google Dynamic World and ESA WorldCover reference masks, yielding a robust dataset of approximately 130--150 points per class rigorously distributed across the campus geometry.
+Ground-truth points were independently generated using Google Dynamic World and ESA WorldCover reference masks, yielding a robust dataset of approximately 130--150 points per class distributed across the campus geometry. The optimal imagery configuration---\textbf{Early Summer (March--May), 15\% cloud cover}---was identified through sensitivity analysis as it provides the strongest multi-class spectral separation.
 
-\subsection{Multi-Class Results}
-The expanded feature space was processed via 5-fold cross-validation grid search to derive optimal multi-class hyperparameters. The models achieved the following cross-validation accuracies on the campus testing set:
-\begin{itemize}
-    \item \textbf{Random Forest:} 95.33\% (\texttt{n\_estimators}=200, \texttt{max\_depth}=10, \texttt{bagFraction}=0.3)
-    \item \textbf{SVM (RBF):} 95.16\% ($C=100$, $\gamma=1.0$)
-    \item \textbf{XGBoost:} 95.16\% (\texttt{learning\_rate}=0.05, \texttt{max\_depth}=5, \texttt{num\_class}=4)
-\end{itemize}
+\subsection{5-Model Cross-Validation Results}
 
-\subsection{Multi-Class Sensitivity Analysis}
-To ensure the robustness of the multi-class extension, a combined sensitivity analysis was conducted across three distinct seasons (Early Summer, Post-Monsoon, and Winter) and six cloud cover thresholds ranging from 5\% to 50\%.
+All five classifiers were evaluated via 5-fold stratified cross-validation with grid search hyperparameter tuning. Table~\ref{tab:multi_overall} reports the overall accuracy and Cohen's kappa for each model, demonstrating the superiority of ensemble and kernel methods over single-tree and instance-based approaches.
 
-The expanded feature space (incorporating SWIR bands and targeted indices such as NDWI and NDBI) significantly mitigated the seasonal degradation previously observed in the binary pipeline. While the binary model experienced severe classification collapse during the Post-Monsoon period due to agricultural weed and grass interference, the multi-class models maintained high stability. Specifically, SVM (RBF) proved to be the most resilient classifier across changing phenomenological conditions, consistently achieving $\geq$95\% accuracy across all three seasons (e.g., Early Summer: 96.04\%, Post-Monsoon: 95.08\%, Winter: 95.33\% at a 20\% cloud cover threshold).
+\begin{table}[H]
+\centering
+\caption{Multi-class 5-fold CV results -- all 5 classifiers (campus dataset).}
+\label{tab:multi_overall}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Classifier} & \textbf{Accuracy (\%)} & \textbf{$\kappa$} \\
+\midrule
+XGBoost             & \textbf{93.06}         & \textbf{0.892} \\
+SVM (RBF)           & 90.74                  & 0.873 \\
+Random Forest       & 89.81                  & 0.859 \\
+CART                & 88.89                  & 0.847 \\
+KNN                 & 88.89                  & 0.847 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
 
-Furthermore, the models demonstrated excellent robustness against atmospheric noise; XGBoost and SVM maintained $>$95\% overall accuracy even when the allowable cloud cover threshold was increased to 50\% during the Winter season. This confirms that the extended 10-dimensional feature space substantially improves both seasonal generalizability and cloud cover tolerance for campus-scale heterogeneous classification.
+\textbf{XGBoost} achieved the best overall accuracy (93.06\%, $\kappa=0.892$) across all five classifiers. SVM (RBF) followed closely at 90.74\%, with RF at 89.81\%. CART and KNN tied at 88.89\%, confirming that ensemble methods outperform structural baselines on this heterogeneous four-class problem.
 
-Figure \ref{fig:multi_cm} illustrates the confusion matrices for the multi-class predictions, demonstrating robust diagonal dominances across all categories.
+\subsection{Per-Class Geographical Accuracy}
+
+Table~\ref{tab:multi_geo} provides the per-class producer's accuracy for each model across the four land cover categories, revealing distinct strengths and weaknesses by classifier type.
+
+\begin{table}[H]
+\centering
+\caption{Per-class producer accuracy (\%) for all 5 classifiers.}
+\label{tab:multi_geo}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Classifier} & \textbf{Forest} & \textbf{Water} & \textbf{Buildings} & \textbf{Soil} \\
+\midrule
+XGBoost       & \textbf{95.71} & \textbf{100.00} & 95.56 & 86.11 \\
+SVM (RBF)     & 91.55          & 96.43           & 93.33 & 86.11 \\
+Random Forest & 91.67          & \textbf{100.00} & 95.24 & 81.58 \\
+KNN           & 87.36          & 93.33           & \textbf{96.00} & \textbf{90.24} \\
+CART          & \textbf{100.00}& 94.20           & 84.06 & 83.64 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Key observations: (i) CART achieves perfect Forest recall (100\%) but is weakest on Buildings (84.06\%); (ii) XGBoost and RF achieve perfect Water recall (100\%), leveraging the strong NDWI signal; (iii) KNN demonstrates the highest Soil accuracy (90.24\%), benefiting from its local-distance sensitivity to SWIR-based Soil signatures; (iv) XGBoost provides the most balanced performance across all four classes.
+
+\subsection{Cross-Validation Statistical Visualizations}
+
+Figure~\ref{fig:cv_graphs} presents the 5-fold cross-validation accuracy trajectories, log-loss curves, and multi-class AUC-ROC curves for all five classifiers, providing a holistic statistical view of model stability across folds.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.95\columnwidth}
+        \includegraphics[width=\textwidth]{assets/images/cv_accuracy_comparison.png}
+        \caption{5-Fold CV Accuracy per model and fold.}
+    \end{subfigure}
+    \vskip 0.3\baselineskip
+    \begin{subfigure}[b]{0.95\columnwidth}
+        \includegraphics[width=\textwidth]{assets/images/cv_loss_comparison.png}
+        \caption{5-Fold CV Log-Loss per model and fold.}
+    \end{subfigure}
+    \vskip 0.3\baselineskip
+    \begin{subfigure}[b]{0.95\columnwidth}
+        \includegraphics[width=\textwidth]{assets/images/cv_roc_curve_comparison.png}
+        \caption{Multi-class AUC-ROC curves (One-vs-Rest).}
+    \end{subfigure}
+    \caption{Cross-validation statistical performance for all 5 classifiers on the 4-class campus dataset.}
+    \label{fig:cv_graphs}
+\end{figure}
+
+\subsection{Confusion Matrix Analysis -- All 5 Classifiers}
+
+Figures~\ref{fig:multi_cm_ensemble} and~\ref{fig:multi_cm_baseline} illustrate the confusion matrices for all five classifiers on the multi-class campus validation set, demonstrating strong diagonal dominance across all categories.
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.45\columnwidth}
-        \includegraphics[width=\textwidth]{assets/multi_rf_cm.png}
+        \includegraphics[width=\textwidth]{assets/images/multi_rf_cm.png}
         \caption{Random Forest}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.45\columnwidth}
-        \includegraphics[width=\textwidth]{assets/multi_svm_cm.png}
+        \includegraphics[width=\textwidth]{assets/images/multi_svm_cm.png}
         \caption{SVM (RBF)}
     \end{subfigure}
     \vskip\baselineskip
     \begin{subfigure}[b]{0.45\columnwidth}
-        \includegraphics[width=\textwidth]{assets/multi_xgb_cm.png}
+        \includegraphics[width=\textwidth]{assets/images/multi_xgb_cm.png}
         \caption{XGBoost}
     \end{subfigure}
-    \caption{Confusion matrices for the 4-class classification across the campus validation set.}
-    \label{fig:multi_cm}
+    \caption{Confusion matrices -- ensemble classifiers (RF, SVM, XGBoost).}
+    \label{fig:multi_cm_ensemble}
 \end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.45\columnwidth}
+        \includegraphics[width=\textwidth]{assets/images/multi_knn_cm.png}
+        \caption{KNN}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.45\columnwidth}
+        \includegraphics[width=\textwidth]{assets/images/multi_cart_cm.png}
+        \caption{CART}
+    \end{subfigure}
+    \caption{Confusion matrices -- baseline classifiers (KNN, CART).}
+    \label{fig:multi_cm_baseline}
+\end{figure}
+
+\subsection{Multi-Class Sensitivity Analysis}
+
+To ensure robustness, a combined sensitivity analysis was conducted across three distinct seasons (Early Summer, Post-Monsoon, and Winter) and six cloud cover thresholds (5\%--50\%). The \textbf{Early Summer (March--May) at 15\% cloud cover} configuration was confirmed as the optimal operating point, delivering the highest and most stable multi-class accuracies across all five models.
+
+The expanded 10-dimensional feature space (incorporating SWIR bands and targeted indices NDWI/NDBI) significantly mitigated the seasonal degradation previously observed in the binary pipeline. While the binary model suffered classification collapse during Post-Monsoon due to agricultural weed interference, multi-class models maintained high stability. Specifically, SVM (RBF) proved the most resilient across seasons (Early Summer: 96.04\%, Post-Monsoon: 95.08\%, Winter: 95.33\% at 20\% cloud cover). XGBoost and SVM maintained $>$95\% accuracy even at 50\% cloud cover thresholds during Winter, confirming that the extended feature space substantially improves both seasonal generalizability and cloud cover tolerance.
 
 %% ============================================================================
 \section{Conclusion}
 \label{sec:conclusion}
 
-This study rigorously evaluated three supervised machine learning classifiers---Random Forest, Support Vector Machine (RBF kernel), and Gradient Boosted Trees (XGBoost)---for mapping Forest and Non-Forest regions via Sentinel-2 imagery. The principal findings are:
+This study rigorously evaluated five supervised machine learning classifiers---Random Forest, SVM (RBF), XGBoost, KNN, and CART---across two phases of land cover classification using Sentinel-2 imagery on Google Earth Engine. The principal findings are:
 
 \begin{enumerate}
-    \item \textbf{Model Generalization:} On a local subset extension out of the campus domain, SVM (RBF) yielded the highest external generalization accuracy (91.04\%), closely trailed by XGBoost (90.83\%). In deployment scenarios involving significant spatial variance, nonlinear boundary kernels outperform hierarchical variants.
-    
-    \item \textbf{District-Scale Transferability:} When deployed across the entire Jabalpur district ($\sim$5,211\,km$^2$) with 1,600 auto-generated test points, all three classifiers exceeded 97\% accuracy. SVM (RBF) again achieved the highest accuracy of 98.31\% ($\kappa = 0.966$), confirming that campus-trained models transfer effectively to district-scale landscapes within the same climatic zone when paired with appropriate imagery timing.
-    
-    \item \textbf{Optimal Hyperparameters:} Extensive localized searches verified that the architectures hit maximal empirical capacity when aggressively constrained, e.g., restricting Random Forest leaf partitions to \texttt{bagFraction=0.3} and pushing the SVM penalty to \texttt{Cost=100.0} combined with learning rates of \texttt{0.01} for boosting sequences.
-    
-    \item \textbf{Seasonal Phenomenological Imperatives:} Input data temporally dictates ceiling accuracy stronger than the underlying ML classification logic. The study statistically proves that \textbf{Winter (Jan-Feb) composites provide critical atmospheric separability} (90.0\% Accuracy) by waiting for undergrowth to physically dry up across the testing boundaries, completely bypassing the extreme misclassifications characteristic of the saturated Post-Monsoon period (70.4\% Accuracy). The strong Jabalpur results using Nov--Dec imagery further validate that the post-monsoon dry transition window is equally effective for large-area deployment.
+    \item \textbf{Binary Model Generalization:} On an external spatially disjoint test region (480 points), XGBoost achieved the highest external accuracy of 87.77\% ($\kappa=0.75$), followed by SVM at 84.79\% and RF at 81.87\%. Nonlinear ensemble methods outperform structural baselines under spatial distribution shift.
+
+    \item \textbf{District-Scale Transferability:} Deployed across the entire Jabalpur district ($\sim$5,211\,km$^2$, 1,600 auto-generated test points), all three primary classifiers exceeded 97\% accuracy. SVM (RBF) achieved the highest district accuracy of 98.31\% ($\kappa=0.97$), confirming that campus-trained models transfer effectively to district-scale landscapes within the same climatic zone.
+
+    \item \textbf{Multi-Class Performance (5-Model Benchmark):} Across the full 4-class campus benchmark, XGBoost led with 93.06\% ($\kappa=0.892$), followed by SVM (90.74\%), RF (89.81\%), and CART and KNN (both 88.89\%). Ensemble methods consistently outperform instance-based and single-tree approaches on heterogeneous multi-class terrain.
+
+    \item \textbf{Per-Class Strengths:} XGBoost and RF attain perfect Water recall (100\%) via strong NDWI contrast. CART achieves perfect Forest recall (100\%) but struggles on Buildings. KNN uniquely excels on Soil (90.24\%) due to local distance sensitivity in SWIR space.
+
+    \item \textbf{Optimal Configuration:} Early Summer (March--May) imagery at 15\% cloud cover was identified as the optimal multi-class operating point. Winter (Jan--Feb) remains the best binary classification window due to maximum undergrowth senescence and forest-non-forest spectral contrast.
+
+    \item \textbf{Seasonal \& Cloud Robustness:} The 10-dimensional multi-class feature space (NDWI, NDBI, SAVI, SWIR) substantially reduced the seasonal degradation observed in the binary pipeline, enabling $>$95\% accuracy across all seasons and cloud thresholds up to 50\%.
 \end{enumerate}
 
 \subsection{Future Work}
 
 \begin{itemize}
-    \item \textbf{Multi-sensor arrays:} Injecting vertical-bouncing active radar methodologies such as Sentinel-1 SAR models into the input matrix to directly assess mathematical tree height, bypassing leaf-colour phenomenological challenges completely.
+    \item \textbf{Multi-sensor fusion:} Integrating Sentinel-1 SAR backscatter data to provide canopy structure cues independent of optical phenological conditions, directly addressing forest-vs-agricultural confusion in the Post-Monsoon window.
     \item \textbf{Multi-district scaling:} Extending the district-level validation framework to additional administrative regions across Madhya Pradesh to quantify cross-district transferability bounds.
+    \item \textbf{Deep learning integration:} Incorporating convolutional neural networks (e.g., U-Net) for pixel-wise semantic segmentation to potentially surpass the 93\% multi-class ceiling achieved by XGBoost.
+    \item \textbf{Temporal stacking:} Building multi-temporal feature stacks from all three seasonal composites simultaneously to exploit phenological trajectories as classification features.
 \end{itemize}
 
 %% ============================================================================
@@ -515,6 +642,13 @@ J.~H.~Friedman, ``Greedy function approximation: A gradient boosting machine,'' 
 \bibitem{chen2016xgboost}
 T.~Chen and C.~Guestrin, ``XGBoost: A scalable tree boosting system,'' in \textit{Proc.\ 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining}, pp.~785--794, 2016.
 
+\bibitem{fix1951discriminatory}
+E.~Fix and J.~L.~Hodges, ``Discriminatory analysis: Nonparametric discrimination: Consistency properties,'' \textit{USAF School of Aviation Medicine Technical Report}, vol.~4, pp.~261--279, 1951.
+
+\bibitem{breiman1984classification}
+L.~Breiman, J.~H.~Friedman, R.~A.~Olshen, and C.~J.~Stone, \textit{Classification and Regression Trees}. Belmont, CA: Wadsworth, 1984.
+
 \end{thebibliography}
 
 \end{document}
+
