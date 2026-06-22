@@ -3,3 +3,4 @@ geemap
 folium
 numpy
 python-dotenv
+tabulate

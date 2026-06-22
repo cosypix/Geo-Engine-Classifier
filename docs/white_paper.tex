@@ -431,6 +431,13 @@ The expanded feature space was processed via 5-fold cross-validation grid search
     \item \textbf{XGBoost:} 95.16\% (\texttt{learning\_rate}=0.05, \texttt{max\_depth}=5, \texttt{num\_class}=4)
 \end{itemize}
 
+\subsection{Multi-Class Sensitivity Analysis}
+To ensure the robustness of the multi-class extension, a combined sensitivity analysis was conducted across three distinct seasons (Early Summer, Post-Monsoon, and Winter) and six cloud cover thresholds ranging from 5\% to 50\%.
+
+The expanded feature space (incorporating SWIR bands and targeted indices such as NDWI and NDBI) significantly mitigated the seasonal degradation previously observed in the binary pipeline. While the binary model experienced severe classification collapse during the Post-Monsoon period due to agricultural weed and grass interference, the multi-class models maintained high stability. Specifically, SVM (RBF) proved to be the most resilient classifier across changing phenomenological conditions, consistently achieving $\geq$95\% accuracy across all three seasons (e.g., Early Summer: 96.04\%, Post-Monsoon: 95.08\%, Winter: 95.33\% at a 20\% cloud cover threshold).
+
+Furthermore, the models demonstrated excellent robustness against atmospheric noise; XGBoost and SVM maintained $>$95\% overall accuracy even when the allowable cloud cover threshold was increased to 50\% during the Winter season. This confirms that the extended 10-dimensional feature space substantially improves both seasonal generalizability and cloud cover tolerance for campus-scale heterogeneous classification.
+
 Figure \ref{fig:multi_cm} illustrates the confusion matrices for the multi-class predictions, demonstrating robust diagonal dominances across all categories.
 
 \begin{figure}[H]
